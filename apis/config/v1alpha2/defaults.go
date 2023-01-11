@@ -70,4 +70,28 @@ func SetDefaults_Configuration(cfg *Configuration) {
 			cfg.InternalCertManagement.WebhookSecretName = pointer.String(DefaultWebhookSecretName)
 		}
 	}
+
+	if cfg.Performance == nil {
+		cfg.Performance = &Performance{}
+	}
+	SetDefaults_Performance(cfg.Performance)
+}
+
+// SetDefaults_Performance sets default values for Performance config.
+func SetDefaults_Performance(performance *Performance) {
+	if performance.JobControllerWorkerCount == nil {
+		performance.JobControllerWorkerCount = pointer.Int(1)
+	}
+	if performance.ResourceFlavorControllerWorkerCount == nil {
+		performance.ResourceFlavorControllerWorkerCount = pointer.Int(1)
+	}
+	if performance.ClusterQueueControllerWorkerCount == nil {
+		performance.ClusterQueueControllerWorkerCount = pointer.Int(1)
+	}
+	if performance.LocalQueueControllerWorkerCount == nil {
+		performance.LocalQueueControllerWorkerCount = pointer.Int(1)
+	}
+	if performance.WorkloadControllerWorkerCount == nil {
+		performance.WorkloadControllerWorkerCount = pointer.Int(1)
+	}
 }

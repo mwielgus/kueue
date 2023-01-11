@@ -33,6 +33,16 @@ const (
 	overwriteLeaderElectionID       = "foo.kueue.x-k8s.io"
 )
 
+var (
+	defaultPerformance = &Performance{
+		JobControllerWorkerCount:            pointer.Int(1),
+		ClusterQueueControllerWorkerCount:   pointer.Int(1),
+		LocalQueueControllerWorkerCount:     pointer.Int(1),
+		ResourceFlavorControllerWorkerCount: pointer.Int(1),
+		WorkloadControllerWorkerCount:       pointer.Int(1),
+	}
+)
+
 func TestSetDefaults_Configuration(t *testing.T) {
 	defaultCtrlManagerConfigurationSpec := ctrlconfigv1alpha1.ControllerManagerConfigurationSpec{
 		Webhook: ctrlconfigv1alpha1.ControllerWebhook{
@@ -62,6 +72,7 @@ func TestSetDefaults_Configuration(t *testing.T) {
 				InternalCertManagement: &InternalCertManagement{
 					Enable: pointer.Bool(false),
 				},
+				Performance: defaultPerformance,
 			},
 		},
 		"defaulting ControllerManagerConfigurationSpec": {
@@ -95,6 +106,7 @@ func TestSetDefaults_Configuration(t *testing.T) {
 				InternalCertManagement: &InternalCertManagement{
 					Enable: pointer.Bool(false),
 				},
+				Performance: defaultPerformance,
 			},
 		},
 		"should not default ControllerManagerConfigurationSpec": {
@@ -138,6 +150,7 @@ func TestSetDefaults_Configuration(t *testing.T) {
 				InternalCertManagement: &InternalCertManagement{
 					Enable: pointer.Bool(false),
 				},
+				Performance: defaultPerformance,
 			},
 		},
 		"should not set LeaderElectionID": {
@@ -170,6 +183,7 @@ func TestSetDefaults_Configuration(t *testing.T) {
 				InternalCertManagement: &InternalCertManagement{
 					Enable: pointer.Bool(false),
 				},
+				Performance: defaultPerformance,
 			},
 		},
 		"defaulting InternalCertManagement": {
@@ -184,6 +198,7 @@ func TestSetDefaults_Configuration(t *testing.T) {
 					WebhookServiceName: pointer.String(DefaultWebhookServiceName),
 					WebhookSecretName:  pointer.String(DefaultWebhookSecretName),
 				},
+				Performance: defaultPerformance,
 			},
 		},
 		"should not default InternalCertManagement": {
@@ -198,6 +213,35 @@ func TestSetDefaults_Configuration(t *testing.T) {
 				ControllerManagerConfigurationSpec: defaultCtrlManagerConfigurationSpec,
 				InternalCertManagement: &InternalCertManagement{
 					Enable: pointer.Bool(false),
+				},
+				Performance: defaultPerformance,
+			},
+		},
+		"not overwriting preferences": {
+			original: &Configuration{
+				Namespace: pointer.String(overwriteNamespace),
+				Performance: &Performance{
+					JobControllerWorkerCount:            pointer.Int(2),
+					WorkloadControllerWorkerCount:       pointer.Int(3),
+					ResourceFlavorControllerWorkerCount: pointer.Int(4),
+					ClusterQueueControllerWorkerCount:   pointer.Int(5),
+					LocalQueueControllerWorkerCount:     pointer.Int(6),
+				},
+			},
+			want: &Configuration{
+				Namespace:                          pointer.String(overwriteNamespace),
+				ControllerManagerConfigurationSpec: defaultCtrlManagerConfigurationSpec,
+				InternalCertManagement: &InternalCertManagement{
+					Enable:             pointer.Bool(true),
+					WebhookServiceName: pointer.String(DefaultWebhookServiceName),
+					WebhookSecretName:  pointer.String(DefaultWebhookSecretName),
+				},
+				Performance: &Performance{
+					JobControllerWorkerCount:            pointer.Int(2),
+					WorkloadControllerWorkerCount:       pointer.Int(3),
+					ResourceFlavorControllerWorkerCount: pointer.Int(4),
+					ClusterQueueControllerWorkerCount:   pointer.Int(5),
+					LocalQueueControllerWorkerCount:     pointer.Int(6),
 				},
 			},
 		},

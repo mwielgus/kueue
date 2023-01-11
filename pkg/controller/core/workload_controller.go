@@ -28,6 +28,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	kueue "sigs.k8s.io/kueue/apis/kueue/v1alpha2"
@@ -54,15 +55,17 @@ type WorkloadReconciler struct {
 	cache    *cache.Cache
 	client   client.Client
 	watchers []WorkloadUpdateWatcher
+	workers  int
 }
 
-func NewWorkloadReconciler(client client.Client, queues *queue.Manager, cache *cache.Cache, watchers ...WorkloadUpdateWatcher) *WorkloadReconciler {
+func NewWorkloadReconciler(client client.Client, queues *queue.Manager, cache *cache.Cache, workers int, watchers ...WorkloadUpdateWatcher) *WorkloadReconciler {
 	return &WorkloadReconciler{
 		log:      ctrl.Log.WithName("workload-reconciler"),
 		client:   client,
 		queues:   queues,
 		cache:    cache,
 		watchers: watchers,
+		workers:  workers,
 	}
 }
 
@@ -261,6 +264,7 @@ func (r *WorkloadReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&kueue.Workload{}).
 		WithEventFilter(r).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.workers}).
 		Complete(r)
 }
 

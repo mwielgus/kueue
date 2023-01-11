@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	config "sigs.k8s.io/kueue/apis/config/v1alpha2"
 	kueue "sigs.k8s.io/kueue/apis/kueue/v1alpha2"
 	"sigs.k8s.io/kueue/apis/kueue/webhooks"
 	"sigs.k8s.io/kueue/pkg/cache"
@@ -86,7 +87,9 @@ func managerAndSchedulerSetup(mgr manager.Manager, ctx context.Context) {
 	cCache := cache.New(mgr.GetClient(), cache.WithPodsReadyTracking(waitForPodsReady))
 	queues := queue.NewManager(mgr.GetClient(), cCache)
 
-	failedCtrl, err := core.SetupControllers(mgr, queues, cCache)
+	performance := &config.Performance{}
+	config.SetDefaults_Performance(performance)
+	failedCtrl, err := core.SetupControllers(mgr, queues, cCache, performance)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred(), "controller", failedCtrl)
 
 	failedWebhook, err := webhooks.Setup(mgr)

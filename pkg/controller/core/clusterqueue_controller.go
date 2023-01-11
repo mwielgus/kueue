@@ -30,6 +30,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -54,12 +55,14 @@ type ClusterQueueReconciler struct {
 	wlUpdateCh chan event.GenericEvent
 	rfUpdateCh chan event.GenericEvent
 	watchers   []ClusterQueueUpdateWatcher
+	workers    int
 }
 
 func NewClusterQueueReconciler(
 	client client.Client,
 	qMgr *queue.Manager,
 	cache *cache.Cache,
+	workers int,
 	watchers ...ClusterQueueUpdateWatcher,
 ) *ClusterQueueReconciler {
 	return &ClusterQueueReconciler{
@@ -70,6 +73,7 @@ func NewClusterQueueReconciler(
 		wlUpdateCh: make(chan event.GenericEvent, updateChBuffer),
 		rfUpdateCh: make(chan event.GenericEvent, updateChBuffer),
 		watchers:   watchers,
+		workers:    workers,
 	}
 }
 
@@ -341,6 +345,7 @@ func (r *ClusterQueueReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Channel{Source: r.wlUpdateCh}, &wHandler).
 		Watches(&source.Channel{Source: r.rfUpdateCh}, &rfHandler).
 		WithEventFilter(r).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.workers}).
 		Complete(r)
 }
 

@@ -51,6 +51,10 @@ type Configuration struct {
 	// This is achieved by blocking the start of new jobs until the previously
 	// started job has all pods running (ready).
 	WaitForPodsReady *WaitForPodsReady `json:"waitForPodsReady,omitempty"`
+
+	// Settings related to Kueue performance. If not set the default values
+	// for things like worker count will be applied.
+	Performance *Performance `json:"performance,omitempty"`
 }
 
 type WaitForPodsReady struct {
@@ -76,4 +80,25 @@ type InternalCertManagement struct {
 	// WebhookSecretName is the name of the Secret used to store CA and server certs.
 	// Defaults to kueue-webhook-server-cert.
 	WebhookSecretName *string `json:"webhookSecretName,omitempty"`
+}
+
+type Performance struct {
+	// Maximal number of worker to be used to reconcile Job objects in the Job controller.
+	JobControllerWorkerCount *int `json:"jobControllerWorkerCount,omitempty"`
+
+	// Maximal number of worker to be used to reconcile ClusterQueue objects
+	// in the ClusterQueue controller.
+	ClusterQueueControllerWorkerCount *int `json:"clusterQueueControllerWorkerCount,omitempty"`
+
+	// Maximal number of worker to be used to reconcile LocalQueue objects
+	// in the LocalQueue controller.
+	LocalQueueControllerWorkerCount *int `json:"localQueueControllerWorkerCount,omitempty"`
+
+	// Maximal number of worker to be used to reconcile ResourceFlavor objects
+	// in the ResourceFlavor controller.
+	ResourceFlavorControllerWorkerCount *int `json:"resourceFlavorControllerWorkerCount,omitempty"`
+
+	// Maximal number of worker to be used to reconcile Workload objects
+	// in the Workload controller.
+	WorkloadControllerWorkerCount *int `json:"workloadControllerWorkerCount,omitempty"`
 }

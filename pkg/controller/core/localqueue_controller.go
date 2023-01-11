@@ -18,7 +18,6 @@ package core
 
 import (
 	"context"
-
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/types"
@@ -26,6 +25,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -43,15 +43,17 @@ type LocalQueueReconciler struct {
 	queues     *queue.Manager
 	cache      *cache.Cache
 	wlUpdateCh chan event.GenericEvent
+	workers    int
 }
 
-func NewLocalQueueReconciler(client client.Client, queues *queue.Manager, cache *cache.Cache) *LocalQueueReconciler {
+func NewLocalQueueReconciler(client client.Client, queues *queue.Manager, cache *cache.Cache, workers int) *LocalQueueReconciler {
 	return &LocalQueueReconciler{
 		log:        ctrl.Log.WithName("localqueue-reconciler"),
 		queues:     queues,
 		cache:      cache,
 		client:     client,
 		wlUpdateCh: make(chan event.GenericEvent, updateChBuffer),
+		workers:    workers,
 	}
 }
 
@@ -180,5 +182,6 @@ func (r *LocalQueueReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&kueue.LocalQueue{}).
 		Watches(&source.Channel{Source: r.wlUpdateCh}, &qWorkloadHandler{}).
 		WithEventFilter(r).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.workers}).
 		Complete(r)
 }

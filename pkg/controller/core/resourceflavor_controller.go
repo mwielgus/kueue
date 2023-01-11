@@ -26,6 +26,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -48,12 +49,14 @@ type ResourceFlavorReconciler struct {
 	client     client.Client
 	cqUpdateCh chan event.GenericEvent
 	watchers   []ResourceFlavorUpdateWatcher
+	workers    int
 }
 
 func NewResourceFlavorReconciler(
 	client client.Client,
 	qMgr *queue.Manager,
 	cache *cache.Cache,
+	workers int,
 ) *ResourceFlavorReconciler {
 	return &ResourceFlavorReconciler{
 		log:        ctrl.Log.WithName("resourceflavor-reconciler"),
@@ -61,6 +64,7 @@ func NewResourceFlavorReconciler(
 		client:     client,
 		qManager:   qMgr,
 		cqUpdateCh: make(chan event.GenericEvent, updateChBuffer),
+		workers:    workers,
 	}
 }
 
@@ -252,6 +256,7 @@ func (r *ResourceFlavorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&kueue.ResourceFlavor{}).
 		Watches(&source.Channel{Source: r.cqUpdateCh}, &handler).
 		WithEventFilter(r).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.workers}).
 		Complete(r)
 }
 

@@ -19,6 +19,7 @@ package core
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	config "sigs.k8s.io/kueue/apis/config/v1alpha2"
 	"sigs.k8s.io/kueue/pkg/cache"
 	"sigs.k8s.io/kueue/pkg/queue"
 )
@@ -27,21 +28,22 @@ const updateChBuffer = 10
 
 // SetupControllers sets up the core controllers. It returns the name of the
 // controller that failed to create and an error, if any.
-func SetupControllers(mgr ctrl.Manager, qManager *queue.Manager, cc *cache.Cache) (string, error) {
-	rfRec := NewResourceFlavorReconciler(mgr.GetClient(), qManager, cc)
+func SetupControllers(mgr ctrl.Manager, qManager *queue.Manager, cc *cache.Cache, performance *config.Performance) (string, error) {
+	rfRec := NewResourceFlavorReconciler(mgr.GetClient(), qManager, cc, *performance.ResourceFlavorControllerWorkerCount)
 	if err := rfRec.SetupWithManager(mgr); err != nil {
 		return "ResourceFlavor", err
 	}
-	qRec := NewLocalQueueReconciler(mgr.GetClient(), qManager, cc)
+	qRec := NewLocalQueueReconciler(mgr.GetClient(), qManager, cc, *performance.LocalQueueControllerWorkerCount)
 	if err := qRec.SetupWithManager(mgr); err != nil {
 		return "LocalQueue", err
 	}
-	cqRec := NewClusterQueueReconciler(mgr.GetClient(), qManager, cc, rfRec)
+	cqRec := NewClusterQueueReconciler(mgr.GetClient(), qManager, cc, *performance.ClusterQueueControllerWorkerCount, rfRec)
 	rfRec.AddUpdateWatcher(cqRec)
 	if err := cqRec.SetupWithManager(mgr); err != nil {
 		return "ClusterQueue", err
 	}
-	if err := NewWorkloadReconciler(mgr.GetClient(), qManager, cc, qRec, cqRec).SetupWithManager(mgr); err != nil {
+	if err := NewWorkloadReconciler(mgr.GetClient(), qManager, cc,
+		*performance.WorkloadControllerWorkerCount, qRec, cqRec).SetupWithManager(mgr); err != nil {
 		return "Workload", err
 	}
 	return "", nil

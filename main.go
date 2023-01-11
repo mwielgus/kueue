@@ -158,7 +158,7 @@ func setupControllers(mgr ctrl.Manager, cCache *cache.Cache, queues *queue.Manag
 	<-certsReady
 	setupLog.Info("Certs ready")
 
-	if failedCtrl, err := core.SetupControllers(mgr, queues, cCache); err != nil {
+	if failedCtrl, err := core.SetupControllers(mgr, queues, cCache, cfg.Performance); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", failedCtrl)
 		os.Exit(1)
 	}
@@ -168,6 +168,7 @@ func setupControllers(mgr ctrl.Manager, cCache *cache.Cache, queues *queue.Manag
 		mgr.GetEventRecorderFor(constants.JobControllerName),
 		job.WithManageJobsWithoutQueueName(manageJobsWithoutQueueName),
 		job.WithWaitForPodsReady(waitForPodsReady(cfg)),
+		job.WithWorkers(*cfg.Performance.JobControllerWorkerCount),
 	).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Job")
 		os.Exit(1)

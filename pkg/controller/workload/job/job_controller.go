@@ -34,6 +34,7 @@ import (
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	kueue "sigs.k8s.io/kueue/apis/kueue/v1alpha2"
 	"sigs.k8s.io/kueue/pkg/constants"
@@ -52,11 +53,13 @@ type JobReconciler struct {
 	record                     record.EventRecorder
 	manageJobsWithoutQueueName bool
 	waitForPodsReady           bool
+	workers                    int
 }
 
 type options struct {
 	manageJobsWithoutQueueName bool
 	waitForPodsReady           bool
+	workers                    int
 }
 
 // Option configures the reconciler.
@@ -79,7 +82,17 @@ func WithWaitForPodsReady(f bool) Option {
 	}
 }
 
-var defaultOptions = options{}
+// WithWorkers provides the number of parallel workers to reconcile objects
+// inside the controller.
+func WithWorkers(count int) Option {
+	return func(o *options) {
+		o.workers = count
+	}
+}
+
+var defaultOptions = options{
+	workers: 1,
+}
 
 func NewReconciler(
 	scheme *runtime.Scheme,
@@ -98,6 +111,7 @@ func NewReconciler(
 		record:                     record,
 		manageJobsWithoutQueueName: options.manageJobsWithoutQueueName,
 		waitForPodsReady:           options.waitForPodsReady,
+		workers:                    options.workers,
 	}
 }
 
@@ -107,6 +121,7 @@ func (r *JobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&batchv1.Job{}).
 		Owns(&kueue.Workload{}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: r.workers}).
 		Complete(r)
 }
 
